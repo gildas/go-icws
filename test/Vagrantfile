@@ -1,0 +1,60 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+$tmp_root = '../tmp'
+
+unless Vagrant.has_plugin?("vagrant-host-shell")
+  STDERR.puts 'Please install plugin: vagrant-host-shell'
+  exit 1
+end
+
+Dir.mkdir $tmp_root unless Dir.exist? $tmp_root
+
+Vagrant.configure(2) do |config|
+  config.vm.box      = "daas/cic"
+  config.vm.hostname = 'cic-icws'
+  config.vm.guest    = :windows
+
+  config.vm.network "private_network", ip: "192.168.33.10"
+  config.vm.network :forwarded_port, guest: 5985, host: 5985, id: 'winrm', auto_correct: true
+  config.vm.network :forwarded_port, guest: 3389, host: 3389, id: 'rdp',   auto_correct: true
+  config.vm.network :forwarded_port, guest: 8018, host: 8018, id: 'icws', auto_correct: false
+  config.vm.network :forwarded_port, guest: 8019, host: 8019, id: 'icwss', auto_correct: false
+
+  config.vm.synced_folder $tmp_root,         '/vagrant-data'
+  config.vm.synced_folder '/var/cache/daas', '/daas-cache'
+
+  config.vm.provider :virtualbox do |provider, override|
+    provider.gui = true
+    provider.customize ['modifyvm', :id, '--ioapic',      'on'] # So we can assign multiple CPUs to the VM
+    provider.customize ['modifyvm', :id, '--vram',        64]
+    provider.customize ['modifyvm', :id, '--memory',      2048]
+    provider.customize ['modifyvm', :id, '--cpus',        2]
+    provider.customize ['modifyvm', :id, '--clipboard',   'bidirectional']
+    provider.customize ['modifyvm', :id, '--draganddrop', 'bidirectional']
+  end
+
+  config.vm.provider :vmware_fusion do |provider, override|
+    provider.gui = true
+    provider.vmx['memsize']  = '2048'
+    provider.vmx['numvcpus'] = '2'
+  end
+
+  unless File.exist? "#{$tmp_root}/cic-license.i3lic"
+    config.vm.provision 'Checking Ruby', type: :host_shell, inline: "/usr/bin/which ruby"
+    config.vm.provision 'Checking Gems PATH', type: :host_shell, inline: "gem environment gempath"
+    config.vm.provision 'Checking Savon', type: :host_shell, inline: "gem which savon"
+    config.vm.provision 'Fetching CIC version', type: :shell,  inline: 'Get-ItemProperty HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\* | Where DisplayName -match "Interaction Center Server.*" | Select @{Name="Version"; Expression={"{0}.{1}" -f $_.VersionMajor,$_.VersionMinor}} | Select -ExpandProperty Version | Set-Content -Path C:/vagrant-data/version.txt -Encoding Ascii'
+    config.vm.provision "Computing HostID", type: :shell, inline: '& "C:\Program Files (x86)\Interactive Intelligence\GetHostID\GetHostID_CLU.exe" | Select-String -Pattern "\s+([0-9A-F]+)$" -List | ForEach-Object { $_.matches[0].Groups[1].Value } | Set-Content -Path C:\vagrant-data\hostid.txt -Encoding Ascii'
+    config.vm.provision 'Requesting license', type: :host_shell do |shell|
+      shell.abort_on_nonzero = true
+      shell_args   = {
+        hostid:   "@#{$tmp_root}/hostid.txt",
+        hostname: config.vm.hostname,
+        version:  "@#{$tmp_root}/version.txt",
+        output:   "#{$tmp_root}/cic-license.i3lic",
+      }
+      shell.inline = "ruby #{$tmp_root}/get-iclicense.rb --verbose " + shell_args.map {|k,v| "--#{k} \"#{v}\" "}.join
+    end
+  end
+end
