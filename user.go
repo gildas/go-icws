@@ -7,6 +7,13 @@ type User struct {
 	SelfUri     string `json:"uri"`
 }
 
+// GetID tells the ID
+//
+// implements Identifiable
+func (user User) GetID() string {
+	return user.ID
+}
+
 // GetUsers retrieves a list of Users
 func (session *Session) GetUsers() ([]*User, error) {
 	items := struct{

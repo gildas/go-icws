@@ -81,6 +81,13 @@ func NewSession(options SessionOptions) *Session {
 	}
 }
 
+// GetID tells the ID
+//
+// implements Identifiable
+func (session Session) GetID() string {
+	return session.ID
+}
+
 // IsConnected tells if the Session is connected to a PureConnect server
 func (session Session) IsConnected() bool {
 	return session.Status == ConnectedStatus || session.Status == DisconnectingStatus || session.Status == ChangingStatus
@@ -182,6 +189,13 @@ func (session *Session) Connect() (err error) {
 		session.Status = ConnectedStatus
 		session.Features = results.Features
 		session.Logger = session.Logger.Record("session", session.ID)
+
+		err = session.Subscribe(UserStatusMessage{}, UserStatusSubscription{
+			UserIDs: IDList(session.User),
+		})
+		if err != nil {
+			return err
+		}
 
 		return nil
 	}
