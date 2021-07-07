@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/gildas/go-core"
 	"github.com/gildas/go-errors"
@@ -39,6 +40,14 @@ type SessionOptions struct {
 	Password     string            `json:"-"`
 	Application  string            `json:"applicationName"`
 	Language     string            `json:"language"`
+	TokenUpdated chan UpdatedToken `json:"-"`
+}
+
+// UpdatedToken describes the event sent to a chan letting applications know about new Token
+type UpdatedToken struct {
+	Token     string          `json:"token"`
+	UpdatedAt time.Time       `json:"updatedAt"`
+	Context   context.Context `json:"context"`
 }
 
 // SessionFeature describes a feature supported by PureConnect Servers
@@ -151,6 +160,13 @@ func (session *Session) Connect() (err error) {
 		}
 		session.ID = results.SessionID
 		session.Token = results.Token
+		if session.TokenUpdated != nil {
+			log.Tracef("Sending new Token to chan")
+			session.TokenUpdated <- UpdatedToken{
+				Token:   session.Token,
+				Context: session.Context,
+			}
+		}
 		if len(results.Alternates) > 0 {
 			session.Servers = make([]*url.URL, len(results.Alternates))
 			for i := 0; i < len(results.Alternates); i++ {
