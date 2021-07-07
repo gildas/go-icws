@@ -16,19 +16,21 @@ import (
 
 // Session describes a session connected to a PureConnect server
 type Session struct {
-	ID               string                  `json:"id"`
-	Token            string                  `json:"token"`
-	Cookies          []*http.Cookie          `json:"cookies"`
-	Timezone         string                  `json:"timezone"` // ???
-	APIRoot          *url.URL                `json:"-"`
-	Version          VersionInfo             `json:"pureconnectVersion"`
-	User             User                    `json:"user"`
-	Status           SessionStatus           `json:"status"`
-	Features         []SessionFeature        `json:"features"`
-	Subscriptions    map[string]Subscription `json:"-"`
-	Events           chan EventSource        `json:"-"`
-	closeEventStream func()
-	Logger           *logger.Logger `json:"-"`
+	ID                   string                  `json:"id"`
+	Token                string                  `json:"token"`
+	Cookies              []*http.Cookie          `json:"cookies"`
+	Timezone             string                  `json:"timezone"` // ???
+	APIRoot              *url.URL                `json:"-"`
+	Version              VersionInfo             `json:"pureconnectVersion"`
+	User                 User                    `json:"user"`
+	DefaultWorkstationID string                  `json:"defaultWorkstationId"`
+	StationSettings      StationSettings         `json:"stationSettings"`
+	Status               SessionStatus           `json:"status"`
+	Features             []SessionFeature        `json:"features"`
+	Subscriptions        map[string]Subscription `json:"-"`
+	Events               chan EventSource        `json:"-"`
+	closeEventStream     func()
+	Logger               *logger.Logger `json:"-"`
 	SessionOptions
 }
 
@@ -132,18 +134,19 @@ func (session *Session) Connect() (err error) {
 
 		log.Debugf("Connecting to %s (endpoint: %s)", server, endpoint)
 		results := struct {
-			Token             string           `json:"csrfToken"`
-			SessionID         string           `json:"sessionId"`
-			Alternates        []string         `json:"alternateHostList"`
-			Server            string           `json:"icServer"`
-			UserID            string           `json:"userID"`
-			DisplayName       string           `json:"userDisplayName"`
-			PasswordExpiredIn int              `json:"daysUntilPasswordExpiration"`
-			Features          []SessionFeature `json:"features"`
-			Version           VersionInfo      `json:"version"`
+			Token                string           `json:"csrfToken"`
+			SessionID            string           `json:"sessionId"`
+			Alternates           []string         `json:"alternateHostList"`
+			Server               string           `json:"icServer"`
+			UserID               string           `json:"userID"`
+			DisplayName          string           `json:"userDisplayName"`
+			PasswordExpiredIn    int              `json:"daysUntilPasswordExpiration"`
+			DefaultWorkstationID *string          `json:"defaultWorkstationId"`
+			Features             []SessionFeature `json:"features"`
+			Version              VersionInfo      `json:"version"`
 		}{}
 
-		err = session.sendPost("/connection?include=features,version",
+		err = session.sendPost("/connection?include=features,default-workstation,version",
 			struct {
 				Type        string `json:"__type"`
 				Application string `json:"applicationName"`
@@ -188,6 +191,9 @@ func (session *Session) Connect() (err error) {
 				session.Servers[i] = core.Must(url.Parse(fmt.Sprintf("%s://%s:%s", server.Scheme, results.Alternates[i], server.Port()))).(*url.URL)
 			}
 		}
+		if results.DefaultWorkstationID != nil &&  len(*results.DefaultWorkstationID) > 0 {
+			session.DefaultWorkstationID = *results.DefaultWorkstationID
+		}
 		session.User.ID = results.UserID
 		session.User.DisplayName = results.DisplayName
 		session.Status = ConnectedStatus
@@ -209,7 +215,8 @@ func (session *Session) Connect() (err error) {
 
 // Disconnect disconnects the Session from PureConnect
 //
-// All subscriptions are canceled prior to the disconnection
+// All subscriptions are canceled prior to the disconnection.
+// Also disconnected the Station, if any.
 func (session *Session) Disconnect() error {
 	log := session.Logger.Child(nil, "disconnect")
 	if !session.IsConnected() || session.Status == DisconnectingStatus {
@@ -223,6 +230,14 @@ func (session *Session) Disconnect() error {
 		} else {
 			log.Debugf("Unsubcribed from %s", subscription.GetType())
 			delete(session.Subscriptions, key)
+		}
+	}
+	if session.StationSettings != nil {
+		if err := session.StationSettings.Disconnect(session); err != nil {
+			_ = errs.Append(err)
+		} else {
+			log.Debugf("Disconnected from station %s", session.StationSettings)
+			session.StationSettings = nil
 		}
 	}
 	err := errs.AsError()
