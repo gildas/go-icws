@@ -25,6 +25,8 @@ type Session struct {
 	Status           SessionStatus           `json:"status"`
 	Features         []SessionFeature        `json:"features"`
 	Subscriptions    map[string]Subscription `json:"-"`
+	Events           chan EventSource        `json:"-"`
+	closeEventStream func()
 	Logger           *logger.Logger `json:"-"`
 	SessionOptions
 }
@@ -196,7 +198,7 @@ func (session *Session) Connect() (err error) {
 		if err != nil {
 			return err
 		}
-
+		session.startMessageProcessing()
 		return nil
 	}
 	session.Status = DisconnectedStatus
@@ -224,6 +226,9 @@ func (session *Session) Disconnect() error {
 	if err != nil {
 		return err
 	}
+
+	session.stopMessageProcessing()
+	log.Debugf("Message Processing stopped")
 
 	_ = errs.Append(session.sendDelete("/connection"))
 	err = errs.AsError()
@@ -255,6 +260,24 @@ func (session Session) HasSupportWithAtLeastVersion(featureName string, minimumV
 		}
 	}
 	return false
+}
+
+func (session *Session) startMessageProcessing() {
+	log := session.Logger.Child(nil, "messageprocessing")
+	if session.HasSupportWithAtLeastVersion("messaging", 2) { // Server-Sent Events are supported
+		events := NewEventStream()
+		session.Events = events.Events
+		session.closeEventStream = events.Connect(session, "/messaging/messages")
+	} else {
+		log.Warnf("Not yet implemented")
+	}
+}
+
+func (session *Session) stopMessageProcessing() {
+	if session.closeEventStream != nil {
+		session.closeEventStream()
+		session.closeEventStream = nil
+	}
 }
 
 // String gets a text representation
