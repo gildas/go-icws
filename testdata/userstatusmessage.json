@@ -1,0 +1,48 @@
+{
+  "__type": "urn:inin.com:status:userStatusMessage",
+  "userStatusList": [
+    {
+      "userId": "lineadmin",
+      "statusId": "Available",
+      "statusChanged": "20201029T082018Z",
+      "icServers": [],
+      "stations": [],
+      "loggedIn": false,
+      "onPhone": false,
+      "onPhoneChanged": "20201029T082018Z"
+    },
+    {
+      "userId": "Administrator",
+      "statusId": "Do Not disturb",
+      "statusChanged": "20210706T193229Z",
+      "icServers": [],
+      "stations": [
+        "1234"
+      ],
+      "loggedIn": true,
+      "onPhone": false,
+      "onPhoneChanged": "20210702T011636Z"
+    },
+    {
+      "userId": "Operator",
+      "statusId": "Available",
+      "statusChanged": "20201029T082018Z",
+      "icServers": [],
+      "stations": [],
+      "loggedIn": false,
+      "onPhone": false,
+      "onPhoneChanged": "20201029T082018Z"
+    },
+    {
+      "userId": "gildas",
+      "statusId": "Available",
+      "statusChanged": "20210706T182219Z",
+      "icServers": [],
+      "stations": [],
+      "loggedIn": false,
+      "onPhone": false,
+      "onPhoneChanged": "20210707T053020Z"
+    }
+  ],
+  "isDelta": false
+}
