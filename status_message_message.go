@@ -7,8 +7,14 @@ import (
 )
 
 type StatusMessageMessage struct {
-	StatusMessages []StatusMessage `json:"statusMessageList"`
-	IsDelta        bool            `json:"isDelta"`
+	AddedMessages   []StatusMessage `json:"statusMessagesAdded"`
+	ChangedMessages []StatusMessage `json:"statusMessagesChanged"`
+	RemovedMessages []string        `json:"statusMessagesRemoved"`
+	IsDelta         bool            `json:"isDelta"`
+}
+
+func init() {
+	messageRegistry.Add(StatusMessageMessage{})
 }
 
 // GetType tells the JSON type
