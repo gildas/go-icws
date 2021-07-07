@@ -21,6 +21,7 @@ type Session struct {
 	Timezone         string                  `json:"timezone"` // ???
 	APIRoot          *url.URL                `json:"-"`
 	Status           SessionStatus           `json:"status"`
+	Features         []SessionFeature        `json:"features"`
 	Logger           *logger.Logger `json:"-"`
 	SessionOptions
 }
@@ -38,6 +39,12 @@ type SessionOptions struct {
 	Password     string            `json:"-"`
 	Application  string            `json:"applicationName"`
 	Language     string            `json:"language"`
+}
+
+// SessionFeature describes a feature supported by PureConnect Servers
+type SessionFeature struct {
+	Name    string `json:"featureId"`
+	Version int    `json:"version"`
 }
 
 // NewSession creates a new Session
@@ -109,9 +116,10 @@ func (session *Session) Connect() (err error) {
 			UserID            string           `json:"userID"`
 			DisplayName       string           `json:"userDisplayName"`
 			PasswordExpiredIn int              `json:"daysUntilPasswordExpiration"`
+			Features          []SessionFeature `json:"features"`
 		}{}
 
-		err = session.sendPost("/connection",
+		err = session.sendPost("/connection?include=features",
 			struct {
 				Type        string `json:"__type"`
 				Application string `json:"applicationName"`
@@ -150,6 +158,7 @@ func (session *Session) Connect() (err error) {
 			}
 		}
 		session.Status = ConnectedStatus
+		session.Features = results.Features
 		session.Logger = session.Logger.Record("session", session.ID)
 
 		return nil
@@ -172,6 +181,28 @@ func (session *Session) Disconnect() error {
 		session.ID = ""
 	}
 	return err
+}
+
+// HasSupport tells if the Session supports the given PureConnect feature
+func (session Session) HasSupport(featureName string) bool {
+	featureName = strings.ToLower(featureName)
+	for _, feature := range session.Features {
+		if feature.Name == featureName {
+			return true
+		}
+	}
+	return false
+}
+
+// HasSupport tells if the Session supports the given PureConnect feature
+func (session Session) HasSupportWithAtLeastVersion(featureName string, minimumVersion int) bool {
+	featureName = strings.ToLower(featureName)
+	for _, feature := range session.Features {
+		if feature.Name == featureName {
+			return feature.Version >= minimumVersion
+		}
+	}
+	return false
 }
 
 // String gets a text representation
