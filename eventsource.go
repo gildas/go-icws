@@ -97,6 +97,7 @@ func (stream *EventStream) Connect(session *Session, path string) (closeEventStr
 		for scanner.Scan() {
 			line := scanner.Text()
 			if len(line) == 0 {
+				log.Debugf("Unmarshaling: %s", data.String())
 				event.Message, err = UnmarshalMessage([]byte(data.String()))
 				if err != nil {
 					log.Errorf("Unknown Message: %s", data.String(), err)
