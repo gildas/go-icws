@@ -1,28 +1,48 @@
-# Compiled Object files, Static and Dynamic libs (Shared Objects)
-*.o
-*.a
+# Binaries for programs and plugins
+bin/
+*.exe
+*.exe~
+*.dll
 *.so
+*.dll
+*.dylib
 
-# Folders
-_obj
-_test
+# Test binary, built with `go test -c`
+debug
+*.test
 
-# Architecture specific extensions/prefixes
-*.[568vq]
-[568vq].out
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
 
-*.cgo1.go
-*.cgo2.c
-_cgo_defun.c
-_cgo_gotypes.go
-_cgo_export.*
+# Dependency directories (remove the comment below to include it)
+# vendor/
 
-_testmain.go
+# Temp stuff
+tmp/
+temp/
 
 *.exe
+*.exe~
 *.test
 *.prof
 
-# Misc
+# Test binary, build with `go test -c`
+.env
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Temp folder
 tmp/
+
+# Logs
+logs/
 log/
+*.log
+
+# Binaries
+bin/
+
+# local environment
+.env
