@@ -21,6 +21,7 @@ type Session struct {
 	Cookies          []*http.Cookie          `json:"cookies"`
 	Timezone         string                  `json:"timezone"` // ???
 	APIRoot          *url.URL                `json:"-"`
+	Version          VersionInfo             `json:"pureconnectVersion"`
 	User             User                    `json:"user"`
 	Status           SessionStatus           `json:"status"`
 	Features         []SessionFeature        `json:"features"`
@@ -139,9 +140,10 @@ func (session *Session) Connect() (err error) {
 			DisplayName       string           `json:"userDisplayName"`
 			PasswordExpiredIn int              `json:"daysUntilPasswordExpiration"`
 			Features          []SessionFeature `json:"features"`
+			Version           VersionInfo      `json:"version"`
 		}{}
 
-		err = session.sendPost("/connection?include=features",
+		err = session.sendPost("/connection?include=features,version",
 			struct {
 				Type        string `json:"__type"`
 				Application string `json:"applicationName"`

@@ -69,7 +69,7 @@ func (session *Session) send(method, path string, payload interface{}, results i
 		return err
 	}
 	if results != nil {
-		log.Debugf("Results: %+#v", results)
+		log.Tracef("Results: %+#v", results)
 	}
 	if len(response.Cookies) > 0 {
 		session.Cookies = response.Cookies
