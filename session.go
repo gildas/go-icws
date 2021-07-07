@@ -24,6 +24,7 @@ type Session struct {
 	User             User                    `json:"user"`
 	Status           SessionStatus           `json:"status"`
 	Features         []SessionFeature        `json:"features"`
+	Subscriptions    map[string]Subscription `json:"-"`
 	Logger           *logger.Logger `json:"-"`
 	SessionOptions
 }
@@ -75,6 +76,7 @@ func NewSession(options SessionOptions) *Session {
 		User:           User{ID: options.UserID},
 		Status:         DisconnectedStatus,
 		SessionOptions: options,
+		Subscriptions:  map[string]Subscription{},
 		Logger:         log,
 	}
 }
@@ -188,15 +190,31 @@ func (session *Session) Connect() (err error) {
 }
 
 // Disconnect disconnects the Session from PureConnect
+//
+// All subscriptions are canceled prior to the disconnection
 func (session *Session) Disconnect() error {
 	log := session.Logger.Child(nil, "disconnect")
 	if !session.IsConnected() || session.Status == DisconnectingStatus {
 		return nil
 	}
+	var errs errors.MultiError
 	session.Status = DisconnectingStatus
-	err := session.sendDelete("/connection")
-	log.Debugf("Disconnected from %s", session.APIRoot.Host)
+	for _, subscription := range session.Subscriptions {
+		if err := subscription.Unsubscribe(session); err != nil {
+			_ = errs.Append(err)
+		} else {
+			log.Debugf("Unsubcribed from %s", subscription.GetType())
+		}
+	}
+	err := errs.AsError()
+	if err != nil {
+		return err
+	}
+
+	_ = errs.Append(session.sendDelete("/connection"))
+	err = errs.AsError()
 	if err == nil {
+		log.Debugf("Disconnected from %s", session.APIRoot.Host)
 		session.Status = DisconnectedStatus
 		session.ID = ""
 	}
