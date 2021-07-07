@@ -21,6 +21,7 @@ type Session struct {
 	Cookies          []*http.Cookie          `json:"cookies"`
 	Timezone         string                  `json:"timezone"` // ???
 	APIRoot          *url.URL                `json:"-"`
+	User             User                    `json:"user"`
 	Status           SessionStatus           `json:"status"`
 	Features         []SessionFeature        `json:"features"`
 	Logger           *logger.Logger `json:"-"`
@@ -71,6 +72,7 @@ func NewSession(options SessionOptions) *Session {
 		options.Language = "en-us"
 	}
 	return &Session{
+		User:           User{ID: options.UserID},
 		Status:         DisconnectedStatus,
 		SessionOptions: options,
 		Logger:         log,
@@ -173,6 +175,8 @@ func (session *Session) Connect() (err error) {
 				session.Servers[i] = core.Must(url.Parse(fmt.Sprintf("%s://%s:%s", server.Scheme, results.Alternates[i], server.Port()))).(*url.URL)
 			}
 		}
+		session.User.ID = results.UserID
+		session.User.DisplayName = results.DisplayName
 		session.Status = ConnectedStatus
 		session.Features = results.Features
 		session.Logger = session.Logger.Record("session", session.ID)
@@ -234,6 +238,10 @@ func (session Session) String() string {
 	if session.APIRoot != nil {
 		builder.WriteString(" to ")
 		builder.WriteString(session.APIRoot.Host)
+	}
+	if len(session.User.String()) > 0 {
+		builder.WriteString(" as ")
+		builder.WriteString(session.User.String())
 	}
 	builder.WriteString(" ")
 	builder.WriteString(session.Status.String())
