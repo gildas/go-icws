@@ -217,11 +217,12 @@ func (session *Session) Disconnect() error {
 	}
 	var errs errors.MultiError
 	session.Status = DisconnectingStatus
-	for _, subscription := range session.Subscriptions {
+	for key, subscription := range session.Subscriptions {
 		if err := subscription.Unsubscribe(session); err != nil {
 			_ = errs.Append(err)
 		} else {
 			log.Debugf("Unsubcribed from %s", subscription.GetType())
+			delete(session.Subscriptions, key)
 		}
 	}
 	err := errs.AsError()
