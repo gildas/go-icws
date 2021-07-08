@@ -6,14 +6,14 @@ import (
 
 // User describes a PureConnect User
 type User struct {
-	ID          string `json:"userID"`
+	ID          string `json:"id"`
 	DisplayName string `json:"displayName,omitempty"`
 	SelfUri     string `json:"uri"`
 	License LicenseProperties
 }
 
 type userConfiguration struct {
-	ID          string `json:"userID"`
+	ID          string `json:"id"`
 	DisplayName string `json:"displayName,omitempty"`
 	SelfUri     string `json:"uri"`
 }
@@ -39,15 +39,17 @@ func (user User) GetID() string {
 
 // GetUsers retrieves a list of Users
 func (session *Session) GetUsers() ([]User, error) {
-	data := struct{
-		Items []struct{
-			User User `json:"configurationId"`
-		} `json:"items"`
+	data := struct {
+		Items []userRecord `json:"items"`
 	}{}
 	err := session.sendGet("/configuration/users", &data)
 	users := make([]User, len(data.Items))
 	for i := 0; i < len(data.Items); i++ {
-		users[i] = User(data.Items[i].User)
+		users[i] = User{
+			ID:          data.Items[i].UserConfiguration.ID,
+			DisplayName: data.Items[i].UserConfiguration.DisplayName,
+			SelfUri:     data.Items[i].UserConfiguration.SelfUri,
+		}
 	}
 	return users, err
 }
