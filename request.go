@@ -76,9 +76,6 @@ func (session *Session) send(method, path string, headers map[string]string, que
 		// TODO: On HTTP 503, we receive a list of alternate hosts that we should connect to
 		return response, err
 	}
-	if results != nil {
-		log.Tracef("Results: %+#v", results)
-	}
 	if len(response.Cookies) > 0 {
 		session.Cookies = response.Cookies
 	}
