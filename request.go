@@ -23,54 +23,45 @@ func (session Session) endpoint(path string) (endpoint *url.URL, err error) {
 }
 
 func (session *Session) sendPost(path string, payload interface{}, results interface{}) error {
-	return session.send(http.MethodPost, path, nil, payload, results)
+	_, err := session.send(http.MethodPost, path, nil, nil, payload, results)
+	return err
 }
 
 func (session *Session) sendGet(path string, results interface{}) error {
-	return session.send(http.MethodGet, path, nil, nil, results)
+	_, err := session.send(http.MethodGet, path, nil, nil, nil, results)
+	return err
 }
 
 func (session *Session) sendPut(path string, payload interface{}, results interface{}) error {
-	return session.send(http.MethodPut, path, nil, payload, results)
+	_, err := session.send(http.MethodPut, path, nil, nil, payload, results)
+	return err
 }
 
 func (session *Session) sendDelete(path string) error {
-	return session.send(http.MethodDelete, path, nil, nil, nil)
+	_, err := session.send(http.MethodDelete, path, nil, nil, nil, nil)
+	return err
 }
 
-func (session *Session) sendPostWithParameters(path string, queryParameters map[string]string, payload interface{}, results interface{}) error {
-	return session.send(http.MethodPost, path, queryParameters, payload, results)
-}
-
-func (session *Session) sendGetWithParameters(path string, queryParameters map[string]string, results interface{}) error {
-	return session.send(http.MethodGet, path, queryParameters, nil, results)
-}
-
-func (session *Session) sendPutWithParameters(path string, queryParameters map[string]string, payload interface{}, results interface{}) error {
-	return session.send(http.MethodPut, path, queryParameters, payload, results)
-}
-
-func (session *Session) sendDeleteWithParameters(path string, queryParameters map[string]string) error {
-	return session.send(http.MethodDelete, path, queryParameters, nil, nil)
-}
-
-func (session *Session) send(method, path string, queryParameters map[string]string, payload interface{}, results interface{}) (err error) {
+func (session *Session) send(method, path string, headers map[string]string, queryParameters map[string]string, payload interface{}, results interface{}) (response *request.ContentReader, err error) {
 	log := session.Logger.Child(nil, "send_"+strings.ToLower(method))
 
 	if !session.IsConnected() && session.Status != ConnectingStatus && len(session.Token) == 0 {
 		if err = session.Connect(); err != nil {
-			return err
+			return nil, err
 		}
 	}
 	endpoint, err := session.endpoint(path)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	headers := map[string]string{"Accept-Language": session.Language}
+	if headers == nil {
+		headers = map[string]string{}
+	}
+	headers["Accept-Language"] = session.Language
 	if len(session.Token) > 0 {
 		headers["ININ-ICWS-CSRF-Token"] = session.Token
 	}
-	response, err := request.Send(&request.Options{
+	response, err = request.Send(&request.Options{
 		Context:    session.Context,
 		UserAgent:  "GENESYS ICWS GO Client v" + VERSION,
 		Method:     method,
@@ -83,7 +74,7 @@ func (session *Session) send(method, path string, queryParameters map[string]str
 	}, results)
 	if err != nil {
 		// TODO: On HTTP 503, we receive a list of alternate hosts that we should connect to
-		return err
+		return response, err
 	}
 	if results != nil {
 		log.Tracef("Results: %+#v", results)
@@ -91,5 +82,5 @@ func (session *Session) send(method, path string, queryParameters map[string]str
 	if len(response.Cookies) > 0 {
 		session.Cookies = response.Cookies
 	}
-	return nil
+	return response, nil
 }
