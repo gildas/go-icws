@@ -2,6 +2,7 @@ package icws
 
 import (
 	"encoding/json"
+	"strings"
 
 	"github.com/gildas/go-errors"
 )
@@ -40,6 +41,21 @@ func (message UserStatusMessage) Subscribe(session *Session, payload interface{}
 // implements Unsubscriber
 func (message UserStatusMessage) Unsubscribe(session *Session) error {
 	return session.sendDelete("/messaging/subscriptions/status/user-statuses")
+}
+
+// String gets a text representation
+//
+// implements fmt.Stringer
+func (message UserStatusMessage) String() string {
+	sb := strings.Builder{}
+	sb.WriteString("Statuses: [")
+	for _, status := range message.UserStatuses {
+		sb.WriteString("{")
+		sb.WriteString(status.String())
+		sb.WriteString("} ")
+	}
+	sb.WriteString("]")
+	return sb.String()
 }
 
 // MarshalJSON marshals into JSON

@@ -2,6 +2,7 @@ package icws
 
 import (
 	"encoding/json"
+	"strings"
 	"time"
 
 	"github.com/gildas/go-errors"
@@ -17,6 +18,22 @@ type UserStatus struct {
 	ChangedAt        time.Time `json:"-"`
 	Servers          []string  `json:"icServers"`
 	Stations         []string  `json:"stations"`
+}
+
+// String gets a text representation
+//
+// implements fmt.Stringer
+func (message UserStatus) String() string {
+	sb := strings.Builder{}
+	sb.WriteString(message.UserID)
+	sb.WriteString(": ")
+	sb.WriteString(message.StatusID)
+	if message.IsLoggedIn {
+		sb.WriteString(", logged in ")
+	} else {
+		sb.WriteString(", logged out")
+	}
+	return sb.String()
 }
 
 // MarshalJSON marshals into JSON
