@@ -28,9 +28,8 @@ type Session struct {
 	Status               SessionStatus           `json:"status"`
 	Features             []SessionFeature        `json:"features"`
 	Subscriptions        map[string]Subscription `json:"-"`
-	Events               chan EventSource        `json:"-"`
-	closeEventStream     func()
-	Logger               *logger.Logger `json:"-"`
+	eventStream          *EventStream            `json:"-"`
+	Logger               *logger.Logger          `json:"-"`
 	SessionOptions
 }
 
@@ -82,6 +81,7 @@ func NewSession(options SessionOptions) *Session {
 		Status:         DisconnectedStatus,
 		SessionOptions: options,
 		Subscriptions:  map[string]Subscription{},
+		eventStream:    NewEventStream(),
 		Logger:         log,
 	}
 }
@@ -96,6 +96,11 @@ func (session Session) GetID() string {
 // IsConnected tells if the Session is connected to a PureConnect server
 func (session Session) IsConnected() bool {
 	return session.Status == ConnectedStatus || session.Status == DisconnectingStatus || session.Status == ChangingStatus
+}
+
+// Events gives the EventSource chan to read for new Server-Sent Events from PureConnect
+func (session Session) Events() chan EventSource {
+	return session.eventStream.Events
 }
 
 // Connect connects to a PureConnect Server
@@ -200,13 +205,17 @@ func (session *Session) Connect() (err error) {
 		session.Features = results.Features
 		session.Logger = session.Logger.Record("session", session.ID)
 
+		err = session.startMessageProcessing()
+		if err != nil {
+			return err
+		}
+
 		err = session.Subscribe(UserStatusMessage{}, UserStatusSubscription{
 			UserIDs: IDList(session.User),
 		})
 		if err != nil {
 			return err
 		}
-		session.startMessageProcessing()
 		return nil
 	}
 	session.Status = DisconnectedStatus
@@ -280,24 +289,6 @@ func (session Session) HasSupportWithAtLeastVersion(featureName string, minimumV
 	return false
 }
 
-func (session *Session) startMessageProcessing() {
-	log := session.Logger.Child(nil, "messageprocessing")
-	if session.HasSupportWithAtLeastVersion("messaging", 2) { // Server-Sent Events are supported
-		events := NewEventStream()
-		session.Events = events.Events
-		session.closeEventStream = events.Connect(session, "/messaging/messages")
-	} else {
-		log.Warnf("Not yet implemented")
-	}
-}
-
-func (session *Session) stopMessageProcessing() {
-	if session.closeEventStream != nil {
-		session.closeEventStream()
-		session.closeEventStream = nil
-	}
-}
-
 // String gets a text representation
 //
 // implements fmt.Stringer
@@ -340,4 +331,17 @@ func (session Session) MarshalJSON() ([]byte, error) {
 		Servers:   servers,
 	})
 	return data, errors.JSONMarshalError.Wrap(err)
+}
+
+func (session *Session) startMessageProcessing() error {
+	if session.HasSupportWithAtLeastVersion("messaging", 2) { // Server-Sent Events are supported
+		return session.eventStream.Connect(session, "/messaging/messages")
+	}
+	return errors.NotImplemented.WithStack()
+}
+
+func (session *Session) stopMessageProcessing() {
+	if session.HasSupportWithAtLeastVersion("messaging", 2) { // Server-Sent Events are supported
+		session.eventStream.Disconnect()
+	}
 }

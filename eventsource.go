@@ -37,7 +37,7 @@ func NewEventStream() *EventStream {
 // Connect connects to the PureConnect Server-Sent Event Service of the Session
 //
 // Do not forget to call the closeEventStream when you are done
-func (stream *EventStream) Connect(session *Session, path string) (closeEventStream func()) {
+func (stream *EventStream) Connect(session *Session, path string) error {
 	if stream.Logger == nil {
 		stream.Logger = session.Logger.Child("stream", stream)
 	}
@@ -45,15 +45,13 @@ func (stream *EventStream) Connect(session *Session, path string) (closeEventStr
 
 	endpoint, err := session.endpoint("/messaging/messages")
 	if err != nil {
-		log.Errorf("Failed to generate endpoint")
-		return nil
+		return err
 	}
 
 	log.Tracef("HTTP %s %s", http.MethodGet, endpoint.String())
 	req, err := http.NewRequest(http.MethodGet, endpoint.String(), nil)
 	if err != nil {
-		log.Errorf("Failed to create an HTTP request", err)
-		return nil
+		return errors.WithStack(err)
 	}
 
 	req.Header.Set("UserAgent", "GENESYS ICWS GO Client v"+VERSION)
@@ -73,8 +71,7 @@ func (stream *EventStream) Connect(session *Session, path string) (closeEventStr
 	res, err := http.DefaultClient.Do(req)
 	duration := time.Since(start)
 	if err != nil {
-		log.Errorf("Failed to send an HTTP request", err)
-		return nil
+		return errors.WithStack(err)
 	}
 	log.Tracef("Response %s in %s", res.Status, duration)
 	log.Tracef("Response Headers: %#v", res.Header)
@@ -139,9 +136,12 @@ func (stream *EventStream) Connect(session *Session, path string) (closeEventStr
 		res.Body.Close()
 	}()
 
-	return func() {
-		stream.closeChan <- struct{}{}
-	}
+	return nil
+}
+
+// Disconnect disconnects the EventStream
+func (stream EventStream) Disconnect() {
+	stream.closeChan <- struct{}{}
 }
 
 func (stream EventStream) analyzeLine(line string) (field string, value string) {
