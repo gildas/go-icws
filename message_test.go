@@ -43,7 +43,7 @@ func (suite *MessageSuite) TestShouldFailUnmarshalWithWrongType() {
 	_, err := icws.UnmarshalMessage(payload)
 	suite.Require().NotNil(err)
 	suite.Assert().Truef(errors.Is(err, errors.JSONUnmarshalError), "Error should be a JSONUnmarshalError")
-	suite.Assert().Equal(`Unsupported Type "boggus"`, errors.Unwrap(errors.Unwrap(err)).Error())
+	suite.Assert().Equal(`Unsupported Type "boggus"`, errors.Unwrap(err).Error())
 }
 
 func (suite *MessageSuite) TestShouldFailUnmarshalWithInvalidJSON() {
@@ -51,7 +51,7 @@ func (suite *MessageSuite) TestShouldFailUnmarshalWithInvalidJSON() {
 	_, err := icws.UnmarshalMessage(payload)
 	suite.Require().NotNil(err)
 	suite.Assert().Truef(errors.Is(err, errors.JSONUnmarshalError), "Error should be a JSONUnmarshalError")
-	suite.Assert().Equal(`invalid character '\'' looking for beginning of object key string`, errors.Unwrap(errors.Unwrap(err)).Error())
+	suite.Assert().Equal(`invalid character '\'' looking for beginning of object key string`, errors.Unwrap(err).Error())
 }
 
 // Suite Tools
