@@ -42,7 +42,7 @@ func (session *Session) sendDelete(path string) error {
 	return err
 }
 
-func (session *Session) send(method, path string, headers map[string]string, queryParameters map[string]string, payload interface{}, results interface{}) (response *request.ContentReader, err error) {
+func (session *Session) send(method, path string, headers map[string]string, queryParameters map[string]string, payload interface{}, results interface{}) (response *request.Content, err error) {
 	log := session.Logger.Child(nil, "send_"+strings.ToLower(method))
 
 	if !session.IsConnected() && session.Status != ConnectingStatus && len(session.Token) == 0 {
