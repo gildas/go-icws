@@ -231,11 +231,11 @@ func (session *Session) Disconnect() error {
 	if !session.IsConnected() || session.Status == DisconnectingStatus {
 		return nil
 	}
-	var errs errors.MultiError
+	var errs errors.Error
 	session.Status = DisconnectingStatus
 	for key, subscription := range session.Subscriptions {
 		if err := subscription.Unsubscribe(session); err != nil {
-			_ = errs.Append(err)
+			errs.WithCause(err)
 		} else {
 			log.Debugf("Unsubcribed from %s", subscription.GetType())
 			delete(session.Subscriptions, key)
@@ -243,28 +243,26 @@ func (session *Session) Disconnect() error {
 	}
 	if session.StationSettings != nil {
 		if err := session.StationSettings.Disconnect(session); err != nil {
-			_ = errs.Append(err)
+			errs.WithCause(err)
 		} else {
 			log.Debugf("Disconnected from station %s", session.StationSettings)
 			session.StationSettings = nil
 		}
 	}
-	err := errs.AsError()
-	if err != nil {
-		return err
+	if errs.HasCauses() {
+		return errs.AsError()
 	}
 
 	session.stopMessageProcessing()
 	log.Debugf("Message Processing stopped")
 
-	_ = errs.Append(session.sendDelete("/connection"))
-	err = errs.AsError()
-	if err == nil {
+	errs.WithCause(session.sendDelete("/connection"))
+	if errs.HasCauses() {
 		log.Debugf("Disconnected from %s", session.APIRoot.Host)
 		session.Status = DisconnectedStatus
 		session.ID = ""
 	}
-	return err
+	return errs.AsError()
 }
 
 // HasSupport tells if the Session supports the given PureConnect feature
