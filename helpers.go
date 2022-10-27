@@ -10,7 +10,7 @@ type Identifiable interface {
 
 // IDList collects the Identifiers of items
 //
-// 
+//
 // If some of the given items are not identifiable, it panics
 func IDList(identifiables interface{}) []string {
 	// We have to use the reflect package, because Go does not allow casting from

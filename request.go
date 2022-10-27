@@ -12,14 +12,14 @@ import (
 
 func (session Session) endpoint(path string) (endpoint *url.URL, err error) {
 	if session.APIRoot == nil {
-		return nil, errors.CreationFailed.With("endpoint", path).(errors.Error).Wrap(errors.ArgumentMissing.With("apiRoot"))
+		return nil, errors.WrapErrors(errors.CreationFailed.With("endpoint", path), errors.ArgumentMissing.With("apiRoot"))
 	}
 	if len(session.ID) == 0 {
 		endpoint, err = session.APIRoot.Parse(fmt.Sprintf("/icws%s", path))
 	} else {
 		endpoint, err = session.APIRoot.Parse(fmt.Sprintf("/icws/%s%s", session.ID, path))
 	}
-	return endpoint, errors.CreationFailed.With("endpoint", path).(errors.Error).Wrap(err)
+	return endpoint, errors.WrapErrors(errors.CreationFailed.With("endpoint", path), err)
 }
 
 func (session *Session) sendPost(path string, payload interface{}, results interface{}) error {

@@ -193,10 +193,10 @@ func (session *Session) Connect() (err error) {
 		if len(results.Alternates) > 0 {
 			session.Servers = make([]*url.URL, len(results.Alternates))
 			for i := 0; i < len(results.Alternates); i++ {
-				session.Servers[i] = core.Must(url.Parse(fmt.Sprintf("%s://%s:%s", server.Scheme, results.Alternates[i], server.Port()))).(*url.URL)
+				session.Servers[i] = core.Must(url.Parse(fmt.Sprintf("%s://%s:%s", server.Scheme, results.Alternates[i], server.Port())))
 			}
 		}
-		if results.DefaultWorkstationID != nil &&  len(*results.DefaultWorkstationID) > 0 {
+		if results.DefaultWorkstationID != nil && len(*results.DefaultWorkstationID) > 0 {
 			session.DefaultWorkstationID = *results.DefaultWorkstationID
 		}
 		session.User.ID = results.UserID
@@ -231,11 +231,11 @@ func (session *Session) Disconnect() error {
 	if !session.IsConnected() || session.Status == DisconnectingStatus {
 		return nil
 	}
-	var errs errors.Error
+	var errs errors.MultiError
 	session.Status = DisconnectingStatus
 	for key, subscription := range session.Subscriptions {
 		if err := subscription.Unsubscribe(session); err != nil {
-			errs.WithCause(err)
+			errs.Append(err)
 		} else {
 			log.Debugf("Unsubcribed from %s", subscription.GetType())
 			delete(session.Subscriptions, key)
@@ -243,21 +243,21 @@ func (session *Session) Disconnect() error {
 	}
 	if session.StationSettings != nil {
 		if err := session.StationSettings.Disconnect(session); err != nil {
-			errs.WithCause(err)
+			errs.Append(err)
 		} else {
 			log.Debugf("Disconnected from station %s", session.StationSettings)
 			session.StationSettings = nil
 		}
 	}
-	if errs.HasCauses() {
+	if len(errs.Errors) > 0 {
 		return errs.AsError()
 	}
 
 	session.stopMessageProcessing()
 	log.Debugf("Message Processing stopped")
 
-	errs.WithCause(session.sendDelete("/connection"))
-	if errs.HasCauses() {
+	errs.Append(session.sendDelete("/connection"))
+	if len(errs.Errors) > 0 {
 		log.Debugf("Disconnected from %s", session.APIRoot.Host)
 		session.Status = DisconnectedStatus
 		session.ID = ""

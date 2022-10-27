@@ -13,7 +13,7 @@ type LicenseMessage struct {
 
 // LicenseSubscription  describes a License Subscription Request
 type LicenseSubscription struct {
-	Licenses    []string `json:"licenseList"`
+	Licenses []string `json:"licenseList"`
 }
 
 func init() {

@@ -18,7 +18,7 @@ type Range struct {
 // NewRange creates a new Range
 func NewRange(unit string) Range {
 	return Range{
-		Unit: unit,
+		Unit:  unit,
 		First: 0,
 		Last:  0,
 		Total: math.MaxInt32,
@@ -80,9 +80,9 @@ func GetRangeFromHeader(header http.Header) Range {
 				r.Total = math.MaxInt32
 			} else {
 				r.Total, err = strconv.Atoi(value)
-			if err != nil {
-				r.Total = 0
-			}
+				if err != nil {
+					r.Total = 0
+				}
 			}
 		}
 	}

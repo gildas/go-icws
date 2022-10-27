@@ -12,9 +12,9 @@ import (
 
 func TestCanMarshalTime(t *testing.T) {
 	expected := []byte(`{"Time":"20210706T182219Z"}`)
-	var icwsTime = icws.Time(time.Date(2021, 07,06, 18, 22, 19, 0, time.UTC))
+	var icwsTime = icws.Time(time.Date(2021, 07, 06, 18, 22, 19, 0, time.UTC))
 
-	payload, err := json.Marshal(struct{Time icws.Time}{Time: icwsTime})
+	payload, err := json.Marshal(struct{ Time icws.Time }{Time: icwsTime})
 	require.Nil(t, err)
 	assert.Equal(t, expected, payload)
 }
@@ -22,7 +22,7 @@ func TestCanMarshalTime(t *testing.T) {
 func TestCanUnmarshalTime(t *testing.T) {
 	payload := []byte(`{"Time":"20210706T182219Z"}`)
 
-	data := struct{Time icws.Time}{}
+	data := struct{ Time icws.Time }{}
 
 	err := json.Unmarshal(payload, &data)
 	require.Nil(t, err)
