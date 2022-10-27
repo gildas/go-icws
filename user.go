@@ -9,7 +9,7 @@ type User struct {
 	ID          string `json:"id"`
 	DisplayName string `json:"displayName,omitempty"`
 	SelfUri     string `json:"uri"`
-	License LicenseProperties
+	License     LicenseProperties
 }
 
 type userConfiguration struct {
@@ -58,12 +58,12 @@ func (session *Session) GetUsers() ([]User, error) {
 func (session *Session) GetUsersWithOptions(options QueryOptions) ([]User, error) {
 	// If there is a select option, users are sent back 200 at a time
 	// See: https://help.genesys.com/developer/cic/docs/icws/webhelp/icws/(sessionId)/configuration/users/index.htm#get
-	data := struct{
+	data := struct {
 		Items []userRecord `json:"items"`
 	}{}
 	headers := map[string]string{}
 	users := []User{}
-	for userRange:= NewRange("items"); !userRange.IsAtEnd(); {
+	for userRange := NewRange("items"); !userRange.IsAtEnd(); {
 		userRange.ToMap(headers)
 		response, err := session.send(
 			http.MethodGet,

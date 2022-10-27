@@ -17,7 +17,6 @@ type VersionInfo struct {
 	Codebase       string `json:"codebaseId"`
 	ProductRelease string `json:"productReleaseDisplayString"`
 	ProductPath    string `json:"productPatchDisplayString"`
-
 }
 
 // GetVersion retrieves the PureConnect version

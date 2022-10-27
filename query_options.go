@@ -18,7 +18,7 @@ type QueryConditions []string
 // AsQueryParameters return a parameter map for session.send
 func (options QueryOptions) AsQueryParameters() map[string]string {
 	parameters := map[string]string{}
-	
+
 	if len(options.Fields) > 0 {
 		parameters["select"] = strings.Join(options.Fields, ",")
 	}

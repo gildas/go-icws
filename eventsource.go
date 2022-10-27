@@ -103,7 +103,7 @@ func (stream *EventStream) Connect(session *Session, path string) error {
 				// send the EventSource to the chan for processing by the application
 				stream.Events <- event
 				event = EventSource{} // Create a new EventSource to fill in
-				data  = strings.Builder{}
+				data = strings.Builder{}
 			}
 
 			field, value := stream.analyzeLine(line)
