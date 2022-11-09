@@ -249,7 +249,7 @@ func (session *Session) Disconnect() error {
 			session.StationSettings = nil
 		}
 	}
-	if len(errs.Errors) > 0 {
+	if !errs.IsEmpty() {
 		return errs.AsError()
 	}
 
@@ -257,7 +257,7 @@ func (session *Session) Disconnect() error {
 	log.Debugf("Message Processing stopped")
 
 	errs.Append(session.sendDelete("/connection"))
-	if len(errs.Errors) > 0 {
+	if !errs.IsEmpty() {
 		log.Debugf("Disconnected from %s", session.APIRoot.Host)
 		session.Status = DisconnectedStatus
 		session.ID = ""
